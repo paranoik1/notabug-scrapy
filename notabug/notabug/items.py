@@ -3,7 +3,8 @@
 # See documentation in:
 # https://docs.scrapy.org/en/latest/topics/items.html
 
-from scrapy import Item, Field
+from scrapy import Field, Item
+
 # from dataclasses import dataclass, field
 
 
@@ -31,9 +32,6 @@ class RepositoryItem(Item):
     url = Field()
     stars = Field()
     branches = Field()
-
-
-
 
 
 # @dataclass
@@ -64,4 +62,3 @@ class RepositoryItem(Item):
 #     url: str = field(default=None)
 #     stars: int = field(default=None)
 #     branches: int = field(default=None)
-

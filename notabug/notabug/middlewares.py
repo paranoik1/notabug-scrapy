@@ -8,7 +8,8 @@ from twisted.internet.error import TCPTimedOutError, TimeoutError
 
 
 class NotabugRetryMiddleware(RetryMiddleware):
-    def process_exception(self, request, exception, spider):   
-        if isinstance(exception, TimeoutError) or isinstance(exception, TCPTimedOutError): 
+    def process_exception(self, request, exception, spider):
+        if isinstance(exception, TimeoutError) or isinstance(
+            exception, TCPTimedOutError
+        ):
             return self._retry(request, exception, spider)
-        

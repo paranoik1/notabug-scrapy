@@ -5,8 +5,9 @@
 
 
 # useful for handling different item types with a single interface
-from scrapy import Spider, Item
+from scrapy import Item, Spider
 from scrapy.exceptions import DropItem
+
 from .items import AccountItem
 
 
@@ -18,10 +19,10 @@ class NotabugPipeline:
         username: str = item.get("username", "")
         if username in self.accounts_parsed:
             raise DropItem("Duplicate account username found: " + username)
-        
+
         for field in item.fields:
             item.setdefault(field, None)
-            
+
         spider.logger.info(item)
         self.accounts_parsed.add(username)
 

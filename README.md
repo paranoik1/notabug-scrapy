@@ -15,7 +15,7 @@ poetry install --no-root
 cd notabug
 
 # Запустите парсер
-scrapy crawl notabug -o accounts.json
+scrapy crawl notabug
 ```
 
 Результат — в `notabug/accounts.json`.

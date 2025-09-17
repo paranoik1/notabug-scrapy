@@ -1,6 +1,7 @@
 import scrapy
-from ..items import AccountItem, OrganizationItem, RepositoryItem
 from scrapy.http.response.html import HtmlResponse
+
+from ..items import AccountItem, OrganizationItem, RepositoryItem
 
 
 class NotabugSpider(scrapy.Spider):
@@ -8,12 +9,12 @@ class NotabugSpider(scrapy.Spider):
     allowed_domains = ["notabug.org"]
     start_urls = ["https://notabug.org/explore/users"]
 
-    def parse(self, response: HtmlResponse): # type: ignore
+    def parse(self, response: HtmlResponse):  # type: ignore
         user_profiles = response.css("div.user > div.item a")
         yield from response.follow_all(user_profiles, callback=self.parse_user_profile)
 
         next_url = response.css(".borderless > a::attr(href)").getall()[-1]
-        yield response.follow(next_url, callback=self.parse) # type: ignore
+        yield response.follow(next_url, callback=self.parse)  # type: ignore
 
     def parse_user_profile(self, response):
         profile = response.css("div.ui.card")[0]
@@ -24,10 +25,10 @@ class NotabugSpider(scrapy.Spider):
             avatar = response.urljoin(avatar)
 
         user_profile = AccountItem(
-            avatar=avatar, 
+            avatar=avatar,
             username=profile.css("span.username::text").get(),
             repositories=[],
-            organizations=[]
+            organizations=[],
         )
 
         for li in extra_content.css("li"):
@@ -55,9 +56,11 @@ class NotabugSpider(scrapy.Spider):
 
             for repo in self.parse_repositories(response):
                 user_profile["repositories"].append(repo)
-        
+
         for link in ["/following", "/followers"]:
-            yield scrapy.Request(response.url + link, self.parse_following_and_followers)
+            yield scrapy.Request(
+                response.url + link, self.parse_following_and_followers
+            )
 
         yield user_profile
 
@@ -71,13 +74,15 @@ class NotabugSpider(scrapy.Spider):
                 url=response.urljoin(header.css("::attr(href)").get()),
                 stars=int(metas[0].css("::text").get().strip()),
                 branches=int(metas[1].css("::text").get().strip()),
-                last_updated=repository.css("p.time > span::text").get()
+                last_updated=repository.css("p.time > span::text").get(),
             )
 
             try:
                 repo_item["description"] = repository.css("p.has-emoji::text").get()
             except:
-                self.logger.error("Не удалось получить описание репозитория: %s", repo_item.url)
+                self.logger.error(
+                    "Не удалось получить описание репозитория: %s", repo_item.url
+                )
 
             yield repo_item
 
@@ -88,12 +93,14 @@ class NotabugSpider(scrapy.Spider):
         next_link_list = response.css(".borderless > a").getall()
         if not next_link_list:
             return
-        
+
         next_link = next_link_list[-1]
         self.logger.debug("Next link: %s", next_link)
 
         if next_link:
-            yield response.follow(next_link, callback=self.parse_following_and_followers)
+            yield response.follow(
+                next_link, callback=self.parse_following_and_followers
+            )
 
     # def response_is_ban(self, request, response):
     #     return b'banned' in response.body
