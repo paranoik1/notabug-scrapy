@@ -12,8 +12,8 @@ BOT_NAME = "notabug"
 SPIDER_MODULES = ["notabug.spiders"]
 NEWSPIDER_MODULE = "notabug.spiders"
 
-RETRY_HTTP_CODES = [503]
-RETRY_TIMES = 1000
+# RETRY_HTTP_CODES = [503]
+RETRY_TIMES = 3
 
 # PROXY_POOL_ENABLED = True
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -28,8 +28,8 @@ ROBOTSTXT_OBEY = True
 # Configure a delay for requests for the same website (default: 0)
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
-DOWNLOAD_DELAY = 3
-RANDOMIZE_DOWNLOAD_DELAY = True
+DOWNLOAD_DELAY = 2
+# RANDOMIZE_DOWNLOAD_DELAY = True
 # The download delay setting will honor only one of:
 # CONCURRENT_REQUESTS_PER_DOMAIN = 16
 # CONCURRENT_REQUESTS_PER_IP = 16
@@ -45,8 +45,7 @@ DEFAULT_REQUEST_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
     "Accept-Language": "ru",
 }
-FEEDS = {"accounts.json": {"format": "json", "overwrite": True}}
-FEED_EXPORT_INDENT = 4
+
 # Enable or disable spider middlewares
 # See https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 # SPIDER_MIDDLEWARES = {
@@ -75,14 +74,14 @@ ITEM_PIPELINES = {
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
-# AUTOTHROTTLE_ENABLED = True
+AUTOTHROTTLE_ENABLED = True
 # The initial download delay
-# AUTOTHROTTLE_START_DELAY = 5
+AUTOTHROTTLE_START_DELAY = 2
 # The maximum download delay to be set in case of high latencies
-# AUTOTHROTTLE_MAX_DELAY = 60
+AUTOTHROTTLE_MAX_DELAY = 10
 # The average number of requests Scrapy should be sending in parallel to
 # each remote server
-# AUTOTHROTTLE_TARGET_CONCURRENCY = 1.0
+AUTOTHROTTLE_TARGET_CONCURRENCY = 2.0
 # Enable showing throttling stats for every response received:
 # AUTOTHROTTLE_DEBUG = False
 
@@ -97,4 +96,10 @@ ITEM_PIPELINES = {
 # Set settings whose default value is deprecated to a future-proof value
 REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
+
+# LOG_FILE = "crawl.log"
+JOBDIR = 'crawl-accounts/'
+
+FEEDS = {"accounts.jsonl": {"format": "jsonl", "overwrite": False}}
+FEED_EXPORT_INDENT = 4
 FEED_EXPORT_ENCODING = "utf-8"

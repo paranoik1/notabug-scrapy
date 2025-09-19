@@ -5,25 +5,27 @@
 
 
 # useful for handling different item types with a single interface
-from scrapy import Item, Spider
+from scrapy import Spider
 from scrapy.exceptions import DropItem
 
 from .items import AccountItem
 
 
 class NotabugPipeline:
-    def __init__(self) -> None:
-        self.accounts_parsed: set[str] = set()
+    # def __init__(self) -> None:
+        # self.accounts_parsed: set[str] = set()
 
     def process_item(self, item: AccountItem, spider: Spider):
         username: str = item.get("username", "")
-        if username in self.accounts_parsed:
-            raise DropItem("Duplicate account username found: " + username)
+        # if username in self.accounts_parsed:
+        #     raise DropItem("Duplicate account username found: " + username)
 
         for field in item.fields:
             item.setdefault(field, None)
 
-        spider.logger.info(item)
-        self.accounts_parsed.add(username)
+        spider.logger.info(f"Профиль '{username}' сохраен")
+        # spider.logger.debug(item)
+
+        # self.accounts_parsed.add(username)
 
         return item
