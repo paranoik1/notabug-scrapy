@@ -101,7 +101,7 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 
 # LOG_FILE = "crawl.log"
-# JOBDIR = 'crawl-accounts/'
+# JOBDIR = 'crawl-job/'
 
 FEEDS = {
     "accounts.jsonl": {

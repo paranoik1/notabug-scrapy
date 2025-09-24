@@ -75,9 +75,6 @@ class RepositoryItem:
     commits: int | str = 1
     releases: int | str = 0
     issues: int | str = 0
-
-# @dataclass(slots=True)
-# class RawAccountItem(AccountItem):
-#     followers: str | None = field(default=None) # type: ignore
-#     following: str | None = field(default=None) # type: ignore
-#     joined: str | None = field(default=None) # type: ignore
+    pulls: int | str = 0
+    forks: int | str = 0
+    watchers: int | str = 0

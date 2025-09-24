@@ -107,9 +107,21 @@ class NotabugSpider(scrapy.Spider):
         yield self._follow_next_link(response, callback=self.parse_repositories, cb_kwargs={"owner": owner})
 
     def parse_repo_item(self, response: HtmlResponse, item: RepositoryItem):
-        # FIXME: добавить в item: commits, realeases
-        item
+        git_stats_selector = "#git-stats div.item"
+        navbar_selector = ".tabular > a"
+        right_menu_selector = "div.labeled"
 
+        loader = TakeFirstLoader(item, response=response)
+        loader.add_css("commits", git_stats_selector + ":first-child b::text")
+        loader.add_css("releases", git_stats_selector + ":last-child b::text")
+
+        loader.add_css("issues", navbar_selector + ":nth-child(2) > span.label::text")
+        loader.add_css("pulls", navbar_selector + ":nth-child(3) > span.label::text")
+
+        loader.add_css("watchers", right_menu_selector + ":nth-child(1) > a:nth-child(2)::text")
+        loader.add_css("forks", right_menu_selector + ":nth-child(3) > a:nth-child(2)::text")
+
+        yield loader.load_item()
 
     def explore_accounts(self, response: HtmlResponse):
         profiles = response.css("div.ui.list > div.item span.header > a")
