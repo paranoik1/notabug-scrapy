@@ -29,6 +29,7 @@ ROBOTSTXT_OBEY = True
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
 DOWNLOAD_DELAY = 2
+DOWNLOAD_TIMEOUT = 10
 # RANDOMIZE_DOWNLOAD_DELAY = True
 # The download delay setting will honor only one of:
 # CONCURRENT_REQUESTS_PER_DOMAIN = 16
@@ -69,7 +70,9 @@ DOWNLOADER_MIDDLEWARES = {
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "notabug.pipelines.NotabugPipeline": 300,
+    "notabug.pipelines.StripStringsPipeline": 300,
+    "notabug.pipelines.JoinedCleanPipeline": 350,
+    "notabug.pipelines.ConvertToCorrectTypesPipeline": 400,
 }
 
 # Enable and configure the AutoThrottle extension (disabled by default)
@@ -98,8 +101,23 @@ REQUEST_FINGERPRINTER_IMPLEMENTATION = "2.7"
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 
 # LOG_FILE = "crawl.log"
-JOBDIR = 'crawl-accounts/'
+# JOBDIR = 'crawl-accounts/'
 
-FEEDS = {"accounts.jsonl": {"format": "jsonl", "overwrite": False}}
-FEED_EXPORT_INDENT = 4
+FEEDS = {
+    "accounts.jsonl": {
+        "format": "jsonl", 
+        "overwrite": False, 
+        "item_class": "notabug.items.AccountItem"
+    },
+    "repos.jsonl": {
+        "format": "jsonl", 
+        "item_class": "notabug.items.RepositoryItem"
+    },
+    "organizations.jsonl": {
+        "format": "jsonl", 
+        "item_class": "notabug.items.OrganizationItem"
+    }
+}
+
+# FEED_EXPORT_INDENT = 4
 FEED_EXPORT_ENCODING = "utf-8"

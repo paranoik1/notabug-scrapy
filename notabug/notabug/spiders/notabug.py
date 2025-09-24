@@ -1,106 +1,193 @@
+from collections.abc import AsyncIterator
+from typing import Any, Callable
 import scrapy
 from scrapy.http.response.html import HtmlResponse
-
-from ..items import AccountItem, OrganizationItem, RepositoryItem
+from ..items import OrganizationItem, RepositoryItem, AccountItem, TakeFirstLoader
 
 
 class NotabugSpider(scrapy.Spider):
     name = "notabug"
     allowed_domains = ["notabug.org"]
-    start_urls = ["https://notabug.org/explore/users"]
+    organization_explore_url = "https://notabug.org/explore/organizations"
 
-    def parse(self, response: HtmlResponse):  # type: ignore
-        user_profiles = response.css("div.user > div.item a")
-        yield from response.follow_all(user_profiles, callback=self.parse_user_profile)
+    async def start(self) -> AsyncIterator[Any]:
+        yield scrapy.Request("https://notabug.org/explore/users", callback=self.explore_accounts, dont_filter=True) # type: ignore
 
-        next_url = response.css(".borderless > a::attr(href)").getall()[-1]
-        yield response.follow(next_url, callback=self.parse)  # type: ignore
+        yield scrapy.Request(self.organization_explore_url, callback=self.explore_organizations, dont_filter=True) # type: ignore
 
-    def parse_user_profile(self, response):
+        yield scrapy.Request("https://notabug.org/explore/repos", callback=self.parse_repositories, dont_filter=True) # type: ignore
+
+    def _follow_next_link(self, response: HtmlResponse, callback: Callable, **kwargs):
+        next_link = response.css(".borderless > a:last-child::attr(href)").get()
+        if next_link:
+            return response.follow(next_link, callback=callback, **kwargs)
+
+
+    def explore_organizations(self, response):
+        for org in response.css("div.ui.list > div.item"):
+            url = org.css("span.header > a::attr(href)").get()
+            if not url:
+                self.logger.critical("Не найден url для организации: " + response.url)
+                continue
+
+            name = org.xpath("normalize-space(.//span[@class='header']/text()[last()])").get()
+            icon = org.css("img.avatar::attr(src)").get()
+            joined = org.xpath("normalize-space(.//div[@class='description']/text()[last()])").get()
+
+            item = OrganizationItem(
+                url=response.urljoin(url),
+                name=name or url.strip("/"),
+                icon=icon,
+                joined=joined,
+            )
+            yield response.follow(url, self.parse_organization_item, cb_kwargs={"item": item})
+
+        yield self._follow_next_link(response, self.explore_organizations)
+
+    def parse_organization_item(self, response: HtmlResponse, item: OrganizationItem):
+        loader = TakeFirstLoader(item, response=response)
+        loader.add_css("description", "p.desc::text")
+        loader.add_css("link", "div.meta i.octicon-link + a::attr(href)")
+        loader.add_css("location", "div.meta i.octicon-location + *::text")
+
+        item = loader.load_item()
+        item.persons = response.css("div.members > a::attr(href)").getall()
+
+        yield from response.follow_all(item.persons, callback=self.parse_account_item) # type: ignore
+
+        yield from self.parse_repositories(response, owner=item.name)
+
+        yield item
+
+
+    def parse_repositories(self, response: HtmlResponse, owner: str | None = None):
+        # open_in_browser(response)
+
+        for repository in response.css("div.repository > div.item"):
+            header = repository.css("div.header")[0]
+            metas = header.css("div.metas > span.text::text").getall()
+            title = header.css("a.name")[0]
+
+            title_text = title.css("::text").get()
+            if title_text is None:
+                self.logger.critical("Не удалось получить заголовок репозитория: " + response.url)
+                continue
+
+            if owner is None:
+                # assert " / " in title_text, "В заголовке репозитория нет разделительной черты для получения имени владельца: " + title_text
+                if " / " in title_text:
+                    owner = title_text.split(" / ")[0]
+                else:
+                    self.logger.critical("В заголовке репозитория нет разделительной черты для получения имени владельца: " + title_text)
+
+            _href = title.attrib.get("href")
+            if _href is None:
+                self.logger.critical("Не удалось получить href аттрибут: " + response.url + " " + str(title.attrib))
+                continue
+
+            url = response.urljoin(_href)
+            last_updated = repository.css("p.time > span.time-since::attr(title)").get()
+            if not last_updated:
+                self.logger.critical("Не удалось получить last_updated: " + response.url)
+                continue
+
+            repo_item = RepositoryItem(
+                owner=owner,
+                title=title_text,
+                url=url,
+                stars=metas[0],
+                branches=metas[1],
+                last_updated=last_updated,
+            )
+
+            repo_item.description = repository.css("p.has-emoji::text").get()
+
+            yield response.follow(url, callback=self.parse_repo_item, cb_kwargs={'item': repo_item}) # type: ignore
+
+        yield self._follow_next_link(response, callback=self.parse_repositories, cb_kwargs={"owner": owner})
+
+    def parse_repo_item(self, response: HtmlResponse, item: RepositoryItem):
+        # FIXME: добавить в item: commits, realeases
+        item
+
+
+    def explore_accounts(self, response: HtmlResponse):
+        profiles = response.css("div.ui.list > div.item span.header > a")
+
+        yield from response.follow_all(profiles, callback=self.parse_account_item) # type: ignore
+
+        yield self._follow_next_link(response, callback=self.explore_accounts)
+
+    def parse_account_item(self, response: HtmlResponse):  # type: ignore
         profile = response.css("div.ui.card")[0]
         extra_content = profile.css("div.extra.content")[0]
 
-        avatar = profile.css("span.image > img::attr(src)").get()
-        if avatar.startswith("/"):
+        avatar = profile.css("span.image > img::attr(src)").get("")
+        if not avatar:
+            self.logger.error("Не удалось получить аватар пользователя: " + response.url)
+        elif avatar.startswith("/"):
             avatar = response.urljoin(avatar)
 
+        username = profile.css("span.username::text").get("")
+        if not username:
+            self.logger.error("Не удалось получить имя пользователя: " + response.url)
+
         user_profile = AccountItem(
+            url=response.url,
             avatar=avatar,
-            username=profile.css("span.username::text").get(),
-            repositories=[],
-            organizations=[],
+            username=username,
+            joined=""
         )
 
         for li in extra_content.css("li"):
-            i_attr_class = li.css("i::attr(class)").get()
-            if i_attr_class is None:
-                for link in li.css("a"):
-                    organization = OrganizationItem(
-                        icon=response.urljoin(link.css("img::attr(src)").get()),
-                        link=response.urljoin(link.css("::attr(href)").get()),
-                    )
-                    user_profile["organizations"].append(organization)
+            icon_class = li.css("i::attr(class)").get()
+            if not icon_class:
+                urls = li.css("a::attr(href)").getall()
+                for url in urls:
+                    organization_id = url.removeprefix("/")
+                    yield response.follow(self.organization_explore_url + "?q=" + organization_id)
+                    
                 continue
 
-            match i_attr_class.split()[-1]:
-                case "octicon-clock":
-                    user_profile["joined"] = li.css("::text").get().strip()
-                case "octicon-person":
+            # Извлекаем последнее слово из класса иконки: "octicon-clock" → "clock"
+            icon_name = icon_class.strip().split()[-1].removeprefix("octicon-")
+
+            text = li.xpath("normalize-space(./text()[last()])").get("")
+            link_text = li.css("a::text").get()
+
+            match icon_name:
+                case "clock":
+                    if not text:
+                        self.logger.critical("Не удалось получить дату присоединения пользователя: " + response.url)
+                        continue
+                    user_profile.joined = text
+                case "person":
                     person = li.css("a::text").getall()
-                    user_profile["followers"] = int(person[0].strip().split()[0])
-                    user_profile["following"] = int(person[1].strip().split()[0])
+                    try:
+                        user_profile.followers = int(person[0].strip().split()[0])
+                        user_profile.following = int(person[1].strip().split()[0])
+                    except (ValueError, IndexError):
+                        self.logger.error("Не удалось получить кол-во подписчиков/подписок: " + response.url)
                 case "octicon-link":
-                    user_profile["link"] = li.css("a::text").get().strip()
+                    user_profile.link = link_text
                 case "octicon-location":
-                    user_profile["location"] = li.css("::text").get().strip()
+                    user_profile.location = link_text
 
-            for repo in self.parse_repositories(response):
-                user_profile["repositories"].append(repo)
+        yield from self.parse_repositories(response, user_profile.username)
 
-        for link in ["/following", "/followers"]:
-            yield scrapy.Request(
-                response.url + link, self.parse_following_and_followers
-            )
-
+        for part_url in ["following", "followers"]:
+            if getattr(user_profile, part_url) > 0:
+                yield response.follow(
+                    response.urljoin(part_url), self.parse_following_and_followers
+                )
+            
         yield user_profile
 
-    def parse_repositories(self, response):
-        for repository in response.css("div.repository > div.item"):
-            header = repository.css("div.header > a.name")[0]
-            metas = repository.css("div.metas > span.text")
-
-            repo_item = RepositoryItem(
-                title=header.css("::text").get(),
-                url=response.urljoin(header.css("::attr(href)").get()),
-                stars=int(metas[0].css("::text").get().strip()),
-                branches=int(metas[1].css("::text").get().strip()),
-                last_updated=repository.css("p.time > span::text").get(),
-            )
-
-            try:
-                repo_item["description"] = repository.css("p.has-emoji::text").get()
-            except:
-                self.logger.error(
-                    "Не удалось получить описание репозитория: %s", repo_item.url
-                )
-
-            yield repo_item
-
     def parse_following_and_followers(self, response):
-        profiles_links = response.css("ul.list > li.item > a")
-        yield from response.follow_all(profiles_links, self.parse_user_profile)
+        profiles_links = response.css("ul.list > li.item > a::attr(href)")
+        yield from response.follow_all(profiles_links, self.parse_account_item)
 
-        next_link_list = response.css(".borderless > a").getall()
-        if not next_link_list:
-            return
-
-        next_link = next_link_list[-1]
-        self.logger.debug("Next link: %s", next_link)
-
-        if next_link:
-            yield response.follow(
-                next_link, callback=self.parse_following_and_followers
-            )
+        yield self._follow_next_link(response, callback=self.parse_following_and_followers)
 
     # def response_is_ban(self, request, response):
     #     return b'banned' in response.body
