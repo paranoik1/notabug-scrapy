@@ -29,13 +29,14 @@ class ConvertToCorrectTypesPipeline:
             target_type = field_obj.type
             origin_type = get_origin(target_type)
             
-            match (origin_type):
-                # Если целевой тип - UnionType (str | None или int | str | None и т д)
-                case t if t is UnionType:
-                    # Если да, получаем первый тип
-                    target_type = get_args(target_type)[0]
-                case _:
-                    target_type = origin_type
+            if origin_type:
+                match (origin_type):
+                    # Если целевой тип - UnionType (str | None или int | str | None и т д)
+                    case t if t is UnionType:
+                        # Если да, получаем первый тип
+                        target_type = get_args(target_type)[0]
+                    case _:
+                        target_type = origin_type
 
             # Если уже правильный тип — пропускаем
             if isinstance(value, target_type): # type: ignore

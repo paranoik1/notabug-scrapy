@@ -3,6 +3,7 @@ from typing import Any, Callable
 import scrapy
 from scrapy.http.response.html import HtmlResponse
 from ..items import OrganizationItem, RepositoryItem, AccountItem, TakeFirstLoader
+from urllib.parse import urljoin
 
 
 class NotabugSpider(scrapy.Spider):
@@ -157,7 +158,7 @@ class NotabugSpider(scrapy.Spider):
                 urls = li.css("a::attr(href)").getall()
                 for url in urls:
                     organization_id = url.removeprefix("/")
-                    yield response.follow(self.organization_explore_url + "?q=" + organization_id)
+                    yield response.follow(self.organization_explore_url + "?q=" + organization_id, callback=self.explore_organizations)
                     
                 continue
 
@@ -190,7 +191,7 @@ class NotabugSpider(scrapy.Spider):
         for part_url in ["following", "followers"]:
             if getattr(user_profile, part_url) > 0:
                 yield response.follow(
-                    response.urljoin(part_url), self.parse_following_and_followers
+                    urljoin(response.url, part_url), self.parse_following_and_followers
                 )
             
         yield user_profile

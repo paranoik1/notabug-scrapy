@@ -13,7 +13,7 @@ SPIDER_MODULES = ["notabug.spiders"]
 NEWSPIDER_MODULE = "notabug.spiders"
 
 # RETRY_HTTP_CODES = [503]
-RETRY_TIMES = 3
+RETRY_TIMES = 10
 
 # PROXY_POOL_ENABLED = True
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -102,20 +102,21 @@ TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
 
 # LOG_FILE = "crawl.log"
 # JOBDIR = 'crawl-job/'
+from .items import AccountItem, RepositoryItem, OrganizationItem
 
 FEEDS = {
     "accounts.jsonl": {
         "format": "jsonl", 
         "overwrite": False, 
-        "item_class": "notabug.items.AccountItem"
+        "item_classes": [AccountItem]
     },
     "repos.jsonl": {
         "format": "jsonl", 
-        "item_class": "notabug.items.RepositoryItem"
+        "item_classes": [RepositoryItem]
     },
     "organizations.jsonl": {
         "format": "jsonl", 
-        "item_class": "notabug.items.OrganizationItem"
+        "item_classes": [OrganizationItem]
     }
 }
 
