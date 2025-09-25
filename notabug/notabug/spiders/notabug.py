@@ -12,11 +12,14 @@ class NotabugSpider(scrapy.Spider):
     organization_explore_url = "https://notabug.org/explore/organizations"
 
     async def start(self) -> AsyncIterator[Any]:
-        yield scrapy.Request("https://notabug.org/explore/users", callback=self.explore_accounts, dont_filter=True) # type: ignore
+        urls_callbacks = [
+            ("https://notabug.org/explore/users", self.explore_accounts),
+            (self.organization_explore_url, self.explore_organizations),
+            ("https://notabug.org/explore/repos", self.parse_repositories)
+        ]
 
-        yield scrapy.Request(self.organization_explore_url, callback=self.explore_organizations, dont_filter=True) # type: ignore
-
-        yield scrapy.Request("https://notabug.org/explore/repos", callback=self.parse_repositories, dont_filter=True) # type: ignore
+        for url, callback in urls_callbacks:
+            yield scrapy.Request(url, callback=callback, dont_filter=True) # type: ignore
 
     def _follow_next_link(self, response: HtmlResponse, callback: Callable, **kwargs):
         next_link = response.css(".borderless > a:last-child::attr(href)").get()
@@ -53,6 +56,9 @@ class NotabugSpider(scrapy.Spider):
 
         item = loader.load_item()
         item.persons = response.css("div.members > a::attr(href)").getall()
+        
+        if item.icon and item.icon.startswith("/"):
+            item.icon = response.urljoin(item.icon)
 
         yield from response.follow_all(item.persons, callback=self.parse_account_item) # type: ignore
 
@@ -191,7 +197,7 @@ class NotabugSpider(scrapy.Spider):
         for part_url in ["following", "followers"]:
             if getattr(user_profile, part_url) > 0:
                 yield response.follow(
-                    urljoin(response.url, part_url), self.parse_following_and_followers
+                    urljoin(response.url + "/", part_url), self.parse_following_and_followers
                 )
             
         yield user_profile
