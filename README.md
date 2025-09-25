@@ -112,19 +112,21 @@ scrapy crawl notabug
 Проект использует **три отдельных фида** в `settings.py`:
 
 ```python
+from .items import AccountItem, RepositoryItem, OrganizationItem
+
 FEEDS = {
     "accounts.jsonl": {
         "format": "jsonl", 
         "overwrite": False, 
-        "item_class": "notabug.items.AccountItem"
+        "item_classes": [AccountItem]
     },
     "repos.jsonl": {
         "format": "jsonl", 
-        "item_class": "notabug.items.RepositoryItem"
+        "item_classes": [RepositoryItem]
     },
     "organizations.jsonl": {
         "format": "jsonl", 
-        "item_class": "notabug.items.OrganizationItem"
+        "item_classes": [OrganizationItem]
     }
 }
 ```
@@ -132,6 +134,11 @@ FEEDS = {
 Можно расскомментировать строку с JOBDIR, для возобновления парсера после его отключения:
 ```python
 JOBDIR = 'crawl-job/'
+```
+
+И включить запись логов в файл:
+```python
+LOG_FILE = "crawl.log"
 ```
 
 Также включены пайплайны для:
