@@ -1,0 +1,5 @@
+fake-useragent==2.2.0
+ipykernel==6.30.1
+scrapy==2.13.3
+scrapy-proxy-pool==0.1.9
+scrapy-user-agents==0.1.1
