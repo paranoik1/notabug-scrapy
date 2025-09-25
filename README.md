@@ -10,6 +10,8 @@
 
 ## 📦 Установка и запуск
 
+### Poetry
+
 ```bash
 # Установите зависимости
 poetry install --no-root
@@ -19,6 +21,25 @@ cd notabug
 
 # Запустите парсер
 poetry run scrapy crawl notabug
+```
+
+### pip
+
+```bash
+# Создайте виртуальное окружение
+python -m venv .venv
+
+# Активируйте его
+source .venv/bin/activate
+
+# Установите зависимости
+pip install -r requirements.txt
+
+# Перейдите в папку проекта
+cd notaubg
+
+# Запустите парсер
+scrapy crawl notabug
 ```
 
 Результат сохраняется в трёх файлах в формате **JSONL** (JSON Lines):
@@ -39,7 +60,7 @@ poetry run scrapy crawl notabug
   "url": "https://notabug.org/vimuser",
   "username": "vimuser",
   "avatar": "https://seccdn.libravatar.org/avatar/...",
-  "joined": "2015-04-05T00:00:00",
+  "joined": "2017-03-24 00:00:00",
   "link": "https://libreboot.org/",
   "location": "IRC",
   "followers": 40,
@@ -52,28 +73,31 @@ poetry run scrapy crawl notabug
 {
   "url": "https://notabug.org/libreboot",
   "name": "libreboot",
-  "joined": "2015-03-17T00:00:00",
+  "joined": "2017-03-24 00:00:00",
   "icon": "https://seccdn.libravatar.org/avatar/...",
   "description": "Free (as in freedom) boot firmware...",
   "link": "https://libreboot.org",
   "location": null,
-  "persons": ["vimuser", "leah"]
+  "persons": ["/vimuser", "/leah"]
 }
 ```
 
 ### `RepositoryItem`
 ```json
 {
-  "url": "https://notabug.org/libreboot/lbmk",
-  "owner": "libreboot",
-  "title": "lbmk",
-  "last_updated": "2025-02-18T14:30:00 UTC",
-  "stars": 24,
-  "branches": 3,
-  "commits": 1247,
-  "releases": 5,
-  "issues": 12,
-  "description": "libreboot build system (LibreBoot-MaKe)..."
+  "url": "https://notabug.org/jadedctrl/wrdk",
+  "owner": "jadedctrl",
+  "title": "wrdk",
+  "last_updated": "2020-05-31 07:09:50",
+  "stars": 0,
+  "branches": 0,
+  "description": "Mirror of the WikiReader Development Kits repository",
+  "commits": 1,
+  "releases": 0,
+  "issues": 0,
+  "pulls": 0,
+  "forks": 0,
+  "watchers": 0
 }
 ```
 
